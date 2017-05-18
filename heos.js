@@ -8,7 +8,7 @@ function helm_r1234yf(rho, T) {
     // R1234yf constants
     var Tc = 367.85 // K
     var rhoc = 475.55 // mol.dm^-3 (475.55 kg.m^-3)
-    var pc = 3382.2 // MPa
+    var pc = 3382.2 // kPa
 
     var M = 114.04159 // g/mol
     var Rmol = 8.314472 // J/(mol K)
@@ -63,36 +63,13 @@ function helm_r1234yf(rho, T) {
         return alpha;
     };
 
-    // Resiudal part calculation
-    function alphaR() {
-        var alpha = 0;
-        var sum1 = 0;
-        var sum2 = 0;
-        var sum3 = 0;
-
-        for (var i = 0; i < 5; i++) {
-            sum1 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]);
-        }
-
-        for (var i = 5; i < 10; i++) {
-            sum2 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * Math.exp(-Math.pow(delta, kCoef[i][3]));
-        }
-
-        for (var i = 10; i < 15; i++) {
-            sum3 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * Math.exp(-kCoef[i][4] * Math.pow((delta - kCoef[i][7]), 2) - kCoef[i][5] * Math.pow((tal - kCoef[i][6]), 2));
-        }
-        
-        alpha = sum1 + sum2 + sum3;
-        return alpha;
-    };
-
     // Ideal gas part derivatives
     function alpha0tal() {
         var alpha = 0;
         var sum = 0;
 
         for (var i = 0; i < 4; i++) {
-            sum += iCoef[i][0] * (iCoef[i][1] / Tc) * (1 / (Math.exp((iCoef[i][1] * tal) / Tc) - 1));
+            sum += iCoef[i][0] * (iCoef[i][1] / Tc) * (1 / (Math.exp(iCoef[i][1] * (tal / Tc)) - 1));
         }
 
         alpha = 4.944 + a2 * tal + tal * sum;
@@ -104,10 +81,39 @@ function helm_r1234yf(rho, T) {
         var sum = 0;
 
         for (var i = 0; i < 4; i++) {
-            sum += iCoef[i][0] * (iCoef[i][1] * iCoef[i][1] / (Tc*Tc)) * (Math.exp((iCoef[i][1] * tal) / Tc) / Math.pow(Math.exp((iCoef[i][1] * tal) / Tc), 2));
+            sum += iCoef[i][0] * Math.pow((iCoef[i][1] / Tc), 2) * (Math.exp(iCoef[i][1] * (tal / Tc)) / Math.pow(Math.exp(iCoef[i][1] * (tal / Tc)), 2));
         }
 
-        alpha = -4.944 - tal * tal * sum;
+        alpha = -4.944 - (tal * tal) * sum;
+        return alpha;
+    };
+
+    // Residual part calculation
+    function alphaR() {
+        var alpha = 0;
+        var sum1 = 0;
+        var sum2 = 0;
+        var sum3 = 0;
+
+        for (var i = 0; i < 5; i++) {
+            // CLEAR
+            sum1 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]);
+            // sum1 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk);
+        }
+
+        for (var i = 5; i < 10; i++) {
+            // CLEAR
+            sum2 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * Math.exp(-Math.pow(delta, kCoef[i][3]));
+            // sum2 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * Math.exp(-Math.pow(delta, lk));
+        }
+
+        for (var i = 10; i < 15; i++) {
+            // CLEAR
+            sum3 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * Math.exp(-kCoef[i][4] * Math.pow((delta - kCoef[i][7]), 2) - kCoef[i][5] * Math.pow((tal - kCoef[i][6]), 2));
+            // sum3 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * Math.exp(-nik * Math.pow((delta - epsilonk), 2) - betak * Math.pow((tal - gamak), 2));
+        }
+
+        alpha = sum1 + sum2 + sum3;
         return alpha;
     };
 
@@ -119,17 +125,23 @@ function helm_r1234yf(rho, T) {
         var sum3 = 0;
         
         for (var i = 0; i < 5; i++) {
+            // CLEAR
             sum1 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * kCoef[i][2];
+            // sum1 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * dk;
         }
 
         for (var i = 5; i < 10; i++) {
+            // CLEAR
             sum2 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * Math.exp(-Math.pow(delta, kCoef[i][3])) * (kCoef[i][2] - kCoef[i][3] * Math.pow(delta, kCoef[i][3]));
+            // sum2 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * Math.exp(-Math.pow(delta, lk)) * (dk - lk * Math.pow(delta, lk));
         }
 
         for (var i = 10; i < 15; i++) {
+            // CLEAR
             sum3 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * Math.exp(-kCoef[i][4] * Math.pow((delta - kCoef[i][7]), 2) - kCoef[i][5] * Math.pow((tal - kCoef[i][6]), 2)) * (kCoef[i][2] - 2 * kCoef[i][4] * delta * (delta - kCoef[i][7]));
+            // sum3 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * Math.exp(-nik * Math.pow((delta - epsilonk), 2) - betak * Math.pow((tal - gamak), 2)) * (dk - 2 * nik * delta * (delta - epsilonk));
         }
-        
+
         alpha = sum1 + sum2 + sum3;
         return alpha;
     };
@@ -141,17 +153,21 @@ function helm_r1234yf(rho, T) {
         var sum3 = 0;
         
         for (var i = 0; i < 5; i++) {
+            // CLEAR
             sum1 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * kCoef[i][2] * (kCoef[i][2] - 1);
+            // sum1 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * dk * (dk - 1);
         }
 
         for (var i = 5; i < 10; i++) {
-            sum2 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * Math.exp(-Math.pow(delta, kCoef[i][3])) * ((kCoef[i][2] - kCoef[i][3] * Math.pow(delta, kCoef[i][3])) * kCoef[i][2] - 1 - kCoef[i][3] * Math.pow(delta, kCoef[i][3]) - kCoef[i][3] * kCoef[i][3] * Math.pow(delta, kCoef[i][3]));
+            // CLEAR
+            sum2 += kCoef[i][0] * Math.pow(delta, kCoef[i][2]) * Math.pow(tal, kCoef[i][1]) * Math.exp(-Math.pow(delta, kCoef[i][3])) * ((kCoef[i][2] - kCoef[i][3] * Math.pow(delta, kCoef[i][3])) * (kCoef[i][2] - 1 - kCoef[i][3] * Math.pow(delta, kCoef[i][3])) - kCoef[i][3] * kCoef[i][3] * Math.pow(delta, kCoef[i][3]));
+            // sum2 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * Math.exp(-Math.pow(delta, lk)) * ((dk - lk * Math.pow(delta, lk)) * (dk - 1 - lk * Math.pow(delta, lk)) - lk * lk * Math.pow(delta, lk));
         }
 
         for (var i = 10; i < 15; i++) {
+            // CLEAR
             sum3 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * Math.exp(-kCoef[i][4] * Math.pow((delta - kCoef[i][7]), 2) - kCoef[i][5] * Math.pow((tal - kCoef[i][6]), 2)) * (Math.pow(kCoef[i][2] - 2 * kCoef[i][4] * delta * (delta - kCoef[i][7]), 2) - kCoef[i][2] - 2 * kCoef[i][4] * delta * delta);
         }
-
         alpha = sum1 + sum2 + sum3;
         return alpha;
     };
@@ -163,22 +179,28 @@ function helm_r1234yf(rho, T) {
         var sum3 = 0;
         
         for (var i = 0; i < 5; i++) {
+            // CLEAR
             sum1 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * (kCoef[i][2] * (kCoef[i][2] - 1) * (kCoef[i][2] - 2));
+            // sum1 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * dk * (dk - 1) * (dk - 2);
         }
 
         for (var i = 5; i < 10; i++) {
+            // CLEAR
             sum2 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * Math.exp(-Math.pow(delta, kCoef[i][3])) * 
             (
                 kCoef[i][2] * (kCoef[i][2] - 1) * (kCoef[i][2] - 2) + kCoef[i][3] * Math.pow(delta, kCoef[i][3]) * (-2 + 6 * kCoef[i][2] - 3 * Math.pow(kCoef[i][2], 2) - 3 * kCoef[i][2] * kCoef[i][3] + 3 * kCoef[i][3] - Math.pow(kCoef[i][3], 2)) + 
                 3 * Math.pow(kCoef[i][3], 2) * Math.pow(delta, 2 * kCoef[i][3]) * (kCoef[i][2] - 1 + kCoef[i][3]) - Math.pow(kCoef[i][3], 3) * Math.pow(delta, 3 * kCoef[i][3])
             );
+            // sum2 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * Math.exp(-Math.pow(delta, lk)) * (dk * (dk - 1) * (dk - 2) + lk * Math.pow(delta, lk) * (-2 + 6 * dk - 3 * dk * dk - 3 * dk * lk + 3 * lk - lk * lk) + 3 * lk * lk * Math.pow(delta, 2 * lk) * (dk - 1 + lk) - Math.pow(lk, 3)*Math.pow(delta, 3*lk));
         }
 
         for (var i = 10; i < 15; i++) {
+            // CLEAR
             sum3 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * Math.exp(-kCoef[i][4] * Math.pow((delta - kCoef[i][7]), 2) - kCoef[i][5] * Math.pow((tal - kCoef[i][6]), 2)) * 
             (
                 (Math.pow(kCoef[i][2] - 2 * kCoef[i][4] * delta * (delta - kCoef[i][7]), 3)) - 3 * Math.pow(kCoef[i][2], 2) + 2 * kCoef[i][2] - 6 * kCoef[i][2] * kCoef[i][4] * delta * delta + 6 * kCoef[i][4] * delta * (delta - kCoef[i][7]) * (kCoef[i][2] + 2 * kCoef[i][4] * delta * delta)
-            )
+            );
+            // sum3 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * Math.exp(-nik * Math.pow((delta - epsilonk), 2)  -betak * Math.pow((tal - gamak), 2)) * (Math.pow((dk - 2 * nik * delta * (delta - epsilonk)), 3) - 3 * dk*dk + 2*dk - 6*dk*nik*delta*delta + 6*nik*delta*(delta - epsilonk)*(dk + 2*nik*delta*delta))
         }
 
         alpha = sum1 + sum2 + sum3;
@@ -192,17 +214,23 @@ function helm_r1234yf(rho, T) {
         var sum3 = 0;
 
         for (var i = 0; i < 5; i++) {
+            // CLEAR
             sum1 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * kCoef[i][1];
+            // sum1 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * tk;
         }
 
         for (var i = 5; i < 10; i++) {
+            // CLEAR
             sum2 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * Math.exp(-Math.pow(delta, kCoef[i][3])) * kCoef[i][1];
+            // sum2 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * Math.exp(-Math.pow(delta, lk)) * tk;
         }
 
         for (var i = 10; i < 15; i++) {
+            // CLEAR
             sum3 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * Math.exp(-kCoef[i][4] * Math.pow((delta - kCoef[i][7]), 2) - kCoef[i][5] * Math.pow((tal - kCoef[i][6]), 2)) * (kCoef[i][1] - 2 * kCoef[i][5] * tal * (tal - kCoef[i][6]));
+            // sum3 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * Math.exp(-nik * Math.pow((delta - epsilonk), 2) - betak * Math.pow((tal - gamak), 2)) * (tk - 2 * betak * tal * (tal - gamak));
         }
-        
+
         alpha = sum1 + sum2 + sum3;
         return alpha;
     };
@@ -212,19 +240,24 @@ function helm_r1234yf(rho, T) {
         var sum1 = 0;
         var sum2 = 0;
         var sum3 = 0;
-        
+
         for (var i = 0; i < 5; i++) {
+            // CLEAR
             sum1 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * kCoef[i][1] * (kCoef[i][1] - 1);
+            // sum1 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * tk * (tk - 1);
         }
 
         for (var i = 5; i < 10; i++) {
+            // CLEAR
             sum2 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * Math.exp(-Math.pow(delta, kCoef[i][3])) * kCoef[i][1] * (kCoef[i][1] - 1);
+            // sum2 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * Math.exp(-Math.pow(delta, lk)) * tk * (tk - 1);
         }
 
         for (var i = 10; i < 15; i++) {
-            sum3 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * Math.exp(-kCoef[i][4] * Math.pow((delta - kCoef[i][7]), 2) - kCoef[i][5] * Math.pow((tal - kCoef[i][6]), 2)) * (Math.pow((kCoef[i][1] - 2 * kCoef[i][5] * tal * (tal - kCoef[i][6])), 2) - kCoef[i][1] - 2 * kCoef[i][1] * tal * tal);
+            // CLEAR
+            sum3 += kCoef[i][0] * Math.pow(delta, kCoef[i][2]) * Math.pow(tal, kCoef[i][1]) * Math.exp(-kCoef[i][4] * Math.pow((delta - kCoef[i][7]), 2) - kCoef[i][5] * Math.pow((tal - kCoef[i][6]), 2)) * (Math.pow(kCoef[i][1] - 2 * kCoef[i][5] * tal * (tal - kCoef[i][6]), 2) - kCoef[i][1] - 2 * kCoef[i][5] * tal * tal);
+            // sum3 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * Math.exp(-nik * Math.pow((delta - epsilonk), 2) - betak * Math.pow((tal - gamak), 2)) * (Math.pow(tk - 2 * betak * tal * (tal - gamak), 2) - tk - 2*betak*tal*tal);
         }
-        
         alpha = sum1 + sum2 + sum3;
         return alpha;
     };
@@ -236,17 +269,23 @@ function helm_r1234yf(rho, T) {
         var sum3 = 0;
         
         for (var i = 0; i < 5; i++) {
+            // CLEAR
             sum1 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * kCoef[i][2] * kCoef[i][1];
+            // sum1 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * dk * tk;
         }
 
         for (var i = 5; i < 10; i++) {
+            // CLEAR
             sum2 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * Math.exp(-Math.pow(delta, kCoef[i][3])) * kCoef[i][1] * (kCoef[i][2] - kCoef[i][3] * Math.pow(delta, kCoef[i][3]));
+            // sum2 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * Math.exp(-Math.pow(delta, lk)) * tk * (dk - lk * Math.pow(delta, lk));
         }
 
         for (var i = 10; i < 15; i++) {
-            sum3 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * Math.exp(-kCoef[i][4] * Math.pow((delta - kCoef[i][7]), 2) - kCoef[i][5] * Math.pow((tal - kCoef[i][6]), 2)) * (kCoef[i][2] - 2 * kCoef[i][5] * delta * (delta - kCoef[i][7])) * (kCoef[i][1] - 2 * kCoef[i][5] * tal * (tal - kCoef[i][6]));
+            // CLEAR
+            sum3 += kCoef[i][0] * Math.pow(delta, kCoef[i][2]) * Math.pow(tal, kCoef[i][1]) * Math.exp(-kCoef[i][4] * Math.pow((delta - kCoef[i][7]), 2) - kCoef[i][5] * Math.pow((tal - kCoef[i][6]), 2)) * (kCoef[i][2] - 2 * kCoef[i][4] * delta * (delta - kCoef[i][7])) * (kCoef[i][1] - 2 * kCoef[i][5] * tal * (tal - kCoef[i][6]));
+            // sum3 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * Math.exp(-nik * Math.pow((delta - epsilonk), 2) - betak * Math.pow((tal - gamak), 2)) * (dk - 2 * nik * delta * (delta - epsilonk)) * (tk - 2 * betak * tal * (tal - gamak));
         }
-        
+
         alpha = sum1 + sum2 + sum3;
         return alpha;
     };
@@ -258,39 +297,42 @@ function helm_r1234yf(rho, T) {
         var sum3 = 0;
 
         for (var i = 0; i < 5; i++) {
+            // CLEAR
             sum1 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * kCoef[i][2] * kCoef[i][1] * (kCoef[i][1] - 1);
+            // sum1 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * dk * tk * (tk - 1);
         }
 
         for (var i = 5; i < 10; i++) {
+            // CLEAR
             sum2 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * Math.exp(-Math.pow(delta, kCoef[i][3])) * kCoef[i][1] * (kCoef[i][1] - 1) * (kCoef[i][2] - kCoef[i][3] * Math.pow(delta, kCoef[i][3]));
+            // sum2 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * Math.exp(-Math.pow(delta, lk)) * (tk * (tk - 1) * (dk - lk * Math.pow(delta, lk)));
         }
 
         for (var i = 10; i < 15; i++) {
-            sum3 += kCoef[i][0] * Math.pow(tal, kCoef[i][1]) * Math.pow(delta, kCoef[i][2]) * Math.exp(-kCoef[i][4] * Math.pow((delta - kCoef[i][7]), 2) - kCoef[i][5] * Math.pow((tal - kCoef[i][6]), 2)) * (kCoef[i][2] - 2 * kCoef[i][4] * delta * (delta - kCoef[i][7])) * (Math.pow((kCoef[i][1] - 2 * kCoef[i][5] * tal * (tal - kCoef[i][6])), 2) - kCoef[i][1] - 2 * kCoef[i][1] * tal * tal);
+            // CLEAR
+            sum3 += kCoef[i][0] * Math.pow(delta, kCoef[i][2]) * Math.pow(tal, kCoef[i][1]) * Math.exp(-kCoef[i][4] * Math.pow((delta - kCoef[i][7]), 2) - kCoef[i][5] * Math.pow((tal - kCoef[i][6]), 2)) * (kCoef[i][2] - 2 * kCoef[i][4] * delta * (delta - kCoef[i][7])) * (Math.pow((kCoef[i][1] - 2 * kCoef[i][5] * tal * (tal - kCoef[i][6])), 2) - kCoef[i][1] - 2 * kCoef[i][5] * tal * tal);
+            // sum3 += Nk * Math.pow(delta, dk) * Math.pow(tal, tk) * Math.exp(-nik * Math.pow((delta - epsilonk), 2) - betak * Math.pow((tal - gamak), 2)) * (dk - 2 * nik * delta * (delta - epsilonk)) * (Math.pow((tk - 2 * betak * tal * (tal - gamak)), 2) - tk - 2 * betak * tal*tal);
         }
 
         alpha = sum1 + sum2 + sum3;
         return alpha;
     };
 
-    // return alphaR()
-    console.log(R, T, alpha0tal(), alphaRtal(), alphaRdelta())
-
     return {
-        cp: - (alpha0taltal() + alphaRtaltal()) + R * (Math.pow((1 + alphaRdelta() - alphaRtaldelta()), 2) / (1 + 2 * alphaRdelta() + alphaRdeltadelta())),
-        cv: - R * (alpha0taltal() + alphaRtaltal()),
+        cp: R * ( - (alpha0taltal() + alphaRtaltal()) + (Math.pow((1 + alphaRdelta() - alphaRtaldelta()), 2) / (1 + 2 * alphaRdelta() + alphaRdeltadelta()))),
+        cv: R * (- (alpha0taltal() + alphaRtaltal())),
         h: R * T * (alpha0tal() + alphaRtal() + alphaRdelta() + 1),     // OK
         p: rho * R * T * (1 + (alphaRdelta())),                         // OK
         s: R * (alpha0tal() + alphaRtal() - alpha0() - alphaR()),       // OK
         u: R * T * (alpha0tal() + alphaRtal()),                         // OK
         v: 1/rho,
-        w: R * T
+        w: (R * T / M) * Math.sqrt(1 + 2 * alphaRdelta() + alphaRdeltadelta() - (Math.pow((1 + alphaRdelta() - alphaRtaldelta()), 2) / (alpha0taltal() + alphaRtaltal())))
 
     };
 };
 
 // console.log(helm_r1234yf(243.231, 368.002));
-console.log(helm_r1234yf(1084.5, 300.15));
+console.log(helm_r1234yf(5.9, 273.15 - 30));
 // helm_r1234yf(243.231, 368.002);
 // helm_r1234yf(1041.014, 314.994);
 // console.log(helm_r1234yf(243.231, 368.002));
